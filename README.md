@@ -3,7 +3,7 @@
 
 Implement new page which allows user to enter time logs for the tasks he/she has done.
 
-\- User needs to select task (using autocomplete/typeahead preferably) and enter start and end date and time.
+\- User needs to select task type (using autocomplete/typeahead preferably) and enter start and end date and time.
 
 \- Bonus task (if time allows): User should be able to see the logs he/she has entered.
 
@@ -40,7 +40,7 @@ Mockup ![](src/assets/timesheet_wireframe.png)
 
 ---
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 15.1.3.
+Make sure that you are using a supported version of [node.js]. Angular v18 supports node.js versions v18.19.0 and newer.
 
 ## Development server
 
