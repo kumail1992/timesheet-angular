@@ -1,0 +1,6 @@
+@use "layer-priority.scss";
+
+@import url("primeicons/primeicons.css") layer(primeng-base);
+@import url("primeng/resources/primeng.min.css") layer(primeng-base);
+
+
