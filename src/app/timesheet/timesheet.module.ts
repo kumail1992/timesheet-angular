@@ -8,6 +8,7 @@ import { TableModule } from 'primeng/table';
 import { TimesheetRoutingModule } from './timesheet-routing.module';
 import { ReactiveFormsModule } from '@angular/forms';
 import { TimesheetComponent } from './timesheet.component';
+import { InputTextModule } from 'primeng/inputtext';
 
 @NgModule({
   declarations: [TimesheetComponent],
@@ -18,6 +19,7 @@ import { TimesheetComponent } from './timesheet.component';
     ReactiveFormsModule,
     CalendarModule,
     TableModule,
+    InputTextModule,
   ],
 })
 export class TimesheetModule {}

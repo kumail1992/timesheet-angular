@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { TimesheetService } from './timesheet.service';
 import { LogDTO, NewTask, TaskTypeList } from './timesheet.model';
 import {
@@ -12,56 +12,77 @@ import {
   debounceTime,
   distinctUntilChanged,
   finalize,
+  map,
   of,
+  startWith,
+  switchMap,
+  tap,
 } from 'rxjs';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { dateRangeValidator } from '../core/utilities/helper';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-timesheet',
   templateUrl: './timesheet.component.html',
   styleUrl: './timesheet.component.scss',
 })
-export class TimesheetComponent {
-  private timeSheetService = inject(TimesheetService);
-  fb = inject(NonNullableFormBuilder);
-  fetchingTypes = signal<boolean>(false);
-  taskTypeList = signal<TaskTypeList[]>([]);
-  logs = signal<LogDTO[] | []>([]);
-  searchCtrl = new FormControl('');
+export class TimesheetComponent implements OnInit {
+  private readonly timeSheetService = inject(TimesheetService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  private readonly fb = inject(NonNullableFormBuilder);
+  readonly searchCtrl = new FormControl<string>('', { nonNullable: true });
   form!: FormGroup;
-  savingForm = signal<boolean>(false);
-  loadingLogs = signal<boolean>(false);
+  readonly minDate = new Date();
+
+  readonly fetchingTypes = signal<boolean>(false);
+  readonly taskTypeList = signal<TaskTypeList[]>([]);
+  readonly logs = signal<LogDTO[] | []>([]);
+  readonly savingForm = signal<boolean>(false);
+  readonly loadingLogs = signal<boolean>(true);
 
   ngOnInit() {
-    this.searchCtrl.valueChanges
-      .pipe(debounceTime(500), distinctUntilChanged())
-      .subscribe({
-        next: (res) => {
-          this.getAllLogs({ task: res?.trim() ?? '' });
-        },
-      });
-    this.getAllLogs();
+    this.listenToSearchLogs();
     this.initializeForm();
+  }
+
+  listenToSearchLogs() {
+    this.searchCtrl.valueChanges
+      .pipe(
+        startWith(this.searchCtrl.value),
+        map((query) => query.trim().toLowerCase()),
+        debounceTime(500),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+        switchMap((query) =>
+          this.getAllLogs(query ? { task: query } : undefined)
+        )
+      )
+      .subscribe();
   }
 
   getAllLogs(params?: Partial<NewTask>) {
     this.loadingLogs.set(true);
-    this.timeSheetService
-      .getLogs(params)
-      .pipe(finalize(() => this.loadingLogs.set(false)))
-      .subscribe({
-        next: (res) => {
-          this.logs.set(res);
-        },
-      });
+    return this.timeSheetService.getLogs(params).pipe(
+      catchError((err) => {
+        console.error(err);
+        return of<LogDTO[]>([]);
+      }),
+      tap((d) => this.logs.set(d)),
+      finalize(() => this.loadingLogs.set(false))
+    );
   }
 
   initializeForm() {
-    this.form = this.fb.group({
-      start: ['', Validators.required],
-      end: ['', Validators.required],
-      task: ['', Validators.required],
-    });
+    this.form = this.fb.group(
+      {
+        start: ['', Validators.required],
+        end: ['', Validators.required],
+        task: ['', Validators.required],
+      },
+      { validators: dateRangeValidator }
+    );
   }
 
   filterTypes(event: AutoCompleteCompleteEvent) {
@@ -73,7 +94,6 @@ export class TimesheetComponent {
         debounceTime(300),
         distinctUntilChanged(),
         catchError(() => {
-          alert('No type found');
           return of([]);
         })
       )
@@ -94,12 +114,9 @@ export class TimesheetComponent {
       .subscribe({
         next: () => {
           this.form.reset();
-          this.getAllLogs();
+          this.searchCtrl.setValue('', { emitEvent: false });
+          this.getAllLogs().subscribe();
         },
       });
-  }
-
-  filterLogs(e: any) {
-    this.searchCtrl.setValue(e.target.value);
   }
 }
