@@ -1,0 +1,43 @@
+<div class="flex flex-col gap-6 p-4">
+  <form class="flex gap-3" [formGroup]="form" (ngSubmit)="onSave()">
+    <p-autoComplete
+      formControlName="task"
+      [forceSelection]="true"
+      [suggestions]="taskTypeList()"
+      (completeMethod)="filterTypes($event)"
+      optionLabel="name"
+      placeholder="Type"
+      optionValue="name"
+    />
+    <p-calendar formControlName="start" placeholder="Start date" />
+    <p-calendar formControlName="end" placeholder="End date" />
+    <button
+      class="rounded-lg px-4 py-3 bg-blue-500 text-white disabled:opacity-50"
+      [disabled]="form.invalid || savingForm()"
+      type="submit"
+    >
+      {{ savingForm() ? "Saving..." : "Save" }}
+    </button>
+  </form>
+  <input type="text" (input)="filterLogs($event)" />
+  <p-table
+    [value]="logs()"
+    [tableStyle]="{ 'min-width': '50rem' }"
+    [loading]="loadingLogs()"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Task</th>
+        <th>Start</th>
+        <th>End</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-task>
+      <tr>
+        <td>{{ task.task }}</td>
+        <td>{{ task.start | date : "medium" }}</td>
+        <td>{{ task.end | date : "medium" }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
